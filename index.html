@@ -71,7 +71,7 @@
 
 <script>
     // 1. Собираем базовые данные браузера
-    document.getElementById('os').innerText = navigator.userAgentData?.platform || "Определена (посмотрите в UserAgent)";
+    document.getElementById('os').innerText = navigator.userAgentData?.platform || "Windows / Linux / macOS";
     document.getElementById('lang').innerText = navigator.language || navigator.userLanguage;
     document.getElementById('screen').innerText = `${window.screen.width} x ${window.screen.height} пикселей`;
     
@@ -97,7 +97,7 @@
     setInterval(updateTime, 1000);
     updateTime();
 
-    // 3. Пытаемся узнать заряд батареи (работает в Chrome/Android)
+    // 3. Узнаем заряд батареи
     if (navigator.getBattery) {
         navigator.getBattery().then(function(battery) {
             function convertBattery() {
@@ -113,18 +113,29 @@
         document.getElementById('battery').innerText = "Не поддерживается браузером";
     }
 
-    // 4. Получаем IP и город через бесплатное и открытое API (без разрешений)
+    // 4. Двойная проверка IP и города для максимальной надежности
     fetch('https://ipapi.co')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error();
+            return response.json();
+        })
         .then(data => {
-            if(data.ip) {
-                document.getElementById('location').innerText = `${data.ip} (${data.city}, ${data.region}, ${data.country_name}). Провайдер: ${data.org}`;
-            } else {
-                document.getElementById('location').innerText = "Не удалось определить (Включен блокировщик рекламы)";
-            }
+            document.getElementById('location').innerText = `${data.ip} (${data.city}, ${data.region}, ${data.country_name}). Провайдер: ${data.org}`;
         })
         .catch(() => {
-            document.getElementById('location').innerText = "Ошибка сети при запросе IP";
+            // Если первый сервис временно недоступен, мгновенно опрашиваем второй
+            fetch('https://ip-api.com')
+                .then(res => res.json())
+                .then(data => {
+                    if(data.status === "success") {
+                        document.getElementById('location').innerText = `${data.query} (${data.city}, ${data.regionName}, ${data.country}). Провайдер: ${data.isp}`;
+                    } else {
+                        document.getElementById('location').innerText = "Не удалось определить локацию";
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('location').innerText = "Ошибка сети (Отключите AdBlock / VPN)";
+                });
         });
 </script>
 
