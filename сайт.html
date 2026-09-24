@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система Сканирования</title>
+    <style>
+        body {
+            background-color: #0d0d0d;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .terminal {
+            background-color: #1a1a1a;
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 5px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: blink 1.5s infinite;
+        }
+        .data-item {
+            margin: 12px 0;
+            font-size: 16px;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 5px;
+        }
+        .label {
+            color: #888;
+        }
+        .value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <h1>[ ВНИМАНИЕ: ДАННЫЕ ПЕРЕХВАЧЕНЫ ]</h1>
+    
+    <div class="data-item"><span class="label">Операционная система:</span> <span class="value" id="os">Определяется...</span></div>
+    <div class="data-item"><span class="label">Браузер:</span> <span class="value" id="browser">Определяется...</span></div>
+    <div class="data-item"><span class="label">Тип устройства:</span> <span class="value" id="device">Определяется...</span></div>
+    <div class="data-item"><span class="label">Разрешение экрана:</span> <span class="value" id="screen">Определяется...</span></div>
+    <div class="data-item"><span class="label">Язык системы:</span> <span class="value" id="lang">Определяется...</span></div>
+    <div class="data-item"><span class="label">Ваше точное время:</span> <span class="value" id="time">Определяется...</span></div>
+    <div class="data-item"><span class="label">Заряд батареи:</span> <span class="value" id="battery">Определяется...</span></div>
+    <div class="data-item"><span class="label">IP и Местоположение:</span> <span class="value" id="location">Загрузка данных сети...</span></div>
+</div>
+
+<script>
+    // 1. Собираем базовые данные браузера
+    document.getElementById('os').innerText = navigator.userAgentData?.platform || "Определена (посмотрите в UserAgent)";
+    document.getElementById('lang').innerText = navigator.language || navigator.userLanguage;
+    document.getElementById('screen').innerText = `${window.screen.width} x ${window.screen.height} пикселей`;
+    
+    // Определяем браузер
+    let userAgent = navigator.userAgent;
+    let browserName = "Неизвестный браузер";
+    if (userAgent.match(/chrome|chromium|crios/i)) { browserName = "Google Chrome"; }
+    else if (userAgent.match(/firefox|fxios/i)) { browserName = "Mozilla Firefox"; }
+    else if (userAgent.match(/safari/i)) { browserName = "Apple Safari"; }
+    else if (userAgent.match(/opr\//i)) { browserName = "Opera"; }
+    else if (userAgent.match(/edg/i)) { browserName = "Microsoft Edge"; }
+    document.getElementById('browser').innerText = browserName;
+
+    // Определяем тип устройства
+    let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    document.getElementById('device').innerText = isMobile ? "Мобильное устройство (Смартфон/Планшет)" : "Компьютер / Ноутбук";
+
+    // 2. Выводим время пользователя
+    function updateTime() {
+        let now = new Date();
+        document.getElementById('time').innerText = now.toLocaleTimeString() + " (Часовой пояс: GMT" + (now.getTimezoneOffset() / -60 > 0 ? "+" : "") + (now.getTimezoneOffset() / -60) + ")";
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // 3. Пытаемся узнать заряд батареи (работает в Chrome/Android)
+    if (navigator.getBattery) {
+        navigator.getBattery().then(function(battery) {
+            function convertBattery() {
+                let level = Math.round(battery.level * 100);
+                let charging = battery.charging ? " (Заряжается)" : " (Разряжается)";
+                document.getElementById('battery').innerText = level + "%" + charging;
+            }
+            convertBattery();
+            battery.addEventListener('levelchange', convertBattery);
+            battery.addEventListener('chargingchange', convertBattery);
+        });
+    } else {
+        document.getElementById('battery').innerText = "Не поддерживается браузером";
+    }
+
+    // 4. Получаем IP и город через бесплатное и открытое API (без разрешений)
+    fetch('https://ipapi.co')
+        .then(response => response.json())
+        .then(data => {
+            if(data.ip) {
+                document.getElementById('location').innerText = `${data.ip} (${data.city}, ${data.region}, ${data.country_name}). Провайдер: ${data.org}`;
+            } else {
+                document.getElementById('location').innerText = "Не удалось определить (Включен блокировщик рекламы)";
+            }
+        })
+        .catch(() => {
+            document.getElementById('location').innerText = "Ошибка сети при запросе IP";
+        });
+</script>
+
+</body>
+</html>
