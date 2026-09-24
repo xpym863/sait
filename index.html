@@ -113,29 +113,17 @@
         document.getElementById('battery').innerText = "Не поддерживается браузером";
     }
 
-    // 4. Двойная проверка IP и города для максимальной надежности
-    fetch('https://ipapi.co')
-        .then(response => {
-            if (!response.ok) throw new Error();
-            return response.json();
-        })
+    // 4. Получаем IP и город через стабильный сервис Sypex Geo (работает без VPN)
+    fetch('https://sypexgeo.net')
+        .then(res => res.json())
         .then(data => {
-            document.getElementById('location').innerText = `${data.ip} (${data.city}, ${data.region}, ${data.country_name}). Провайдер: ${data.org}`;
+            let city = data.city ? data.city.name_ru : "Неизвестный город";
+            let region = data.region ? data.region.name_ru : "";
+            let country = data.country ? data.country.name_ru : "";
+            document.getElementById('location').innerText = `${data.ip} (${city}, ${region}, ${country})`;
         })
         .catch(() => {
-            // Если первый сервис временно недоступен, мгновенно опрашиваем второй
-            fetch('https://ip-api.com')
-                .then(res => res.json())
-                .then(data => {
-                    if(data.status === "success") {
-                        document.getElementById('location').innerText = `${data.query} (${data.city}, ${data.regionName}, ${data.country}). Провайдер: ${data.isp}`;
-                    } else {
-                        document.getElementById('location').innerText = "Не удалось определить локацию";
-                    }
-                })
-                .catch(() => {
-                    document.getElementById('location').innerText = "Ошибка сети (Отключите AdBlock / VPN)";
-                });
+            document.getElementById('location').innerText = "Ошибка сети (проверьте блокировщик)";
         });
 </script>
 
